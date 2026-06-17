@@ -55,14 +55,14 @@ export function registerSettingsHandlers(ipcMain) {
   })
 
   ipcMain.handle('settings:get', async (_, key) => {
-    if (key === 'apiKey') return loadSecret('apiKey')
+    if (key === 'apiKey' || key === 'geminiKey') return loadSecret(key)
     const settings = await loadSettings()
     return settings[key] ?? null
   })
 
   ipcMain.handle('settings:set', async (_, key, value) => {
-    if (key === 'apiKey') {
-      await saveSecret('apiKey', value)
+    if (key === 'apiKey' || key === 'geminiKey') {
+      await saveSecret(key, value)
       return
     }
     const settings = await loadSettings()
@@ -72,7 +72,8 @@ export function registerSettingsHandlers(ipcMain) {
 
   ipcMain.handle('settings:get-all', async () => {
     const settings = await loadSettings()
-    const hasApiKey = !!(await loadSecret('apiKey'))
-    return { ...settings, hasApiKey }
+    const hasApiKey    = !!(await loadSecret('apiKey'))
+    const hasGeminiKey = !!(await loadSecret('geminiKey'))
+    return { ...settings, hasApiKey, hasGeminiKey }
   })
 }

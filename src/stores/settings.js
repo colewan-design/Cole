@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 export const useSettingsStore = defineStore('settings', () => {
   const hasApiKey        = ref(false)
+  const hasGeminiKey     = ref(false)
   const inputPath        = ref('')
   const outputPath       = ref('')
   const vaultRoot        = ref('')
@@ -22,6 +23,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     const all = await window.cole.getAllSettings()
     hasApiKey.value       = all.hasApiKey       ?? false
+    hasGeminiKey.value    = all.hasGeminiKey    ?? false
     inputPath.value       = all.inputPath       ?? ''
     outputPath.value      = all.outputPath      ?? ''
     vaultRoot.value       = all.vaultRoot       ?? ''
@@ -45,12 +47,13 @@ export const useSettingsStore = defineStore('settings', () => {
       supervisorName, supervisorPos1, supervisorPos2,
       provider, ollamaUrl, ollamaModel,
     }
-    if (key === 'apiKey') { hasApiKey.value = !!value; return }
+    if (key === 'apiKey')    { hasApiKey.value    = !!value; return }
+    if (key === 'geminiKey') { hasGeminiKey.value = !!value; return }
     if (map[key]) map[key].value = value
   }
 
   return {
-    hasApiKey, inputPath, outputPath, vaultRoot,
+    hasApiKey, hasGeminiKey, inputPath, outputPath, vaultRoot,
     reporterName, reporterNameSig, position, office,
     supervisorName, supervisorPos1, supervisorPos2,
     provider, ollamaUrl, ollamaModel,

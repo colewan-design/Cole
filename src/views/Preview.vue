@@ -1,142 +1,169 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="preview-page">
     <!-- Toolbar -->
-    <div class="flex items-center justify-between px-6 py-3 border-b border-j-border bg-j-surface flex-shrink-0">
-      <div class="flex items-center gap-3">
-        <button @click="$router.push('/')" class="text-j-muted hover:text-white transition-colors p-1 rounded">
-          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="back-btn" @click="$router.push('/')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <div>
-          <span class="text-sm font-medium text-white">{{ report.fileName || 'No file loaded' }}</span>
-          <span v-if="report.dateStart" class="text-xs text-j-muted ml-2">
+        <div class="file-meta">
+          <span class="file-meta-name">{{ report.fileName || 'No file loaded' }}</span>
+          <span v-if="report.dateStart" class="file-meta-range">
             {{ report.dateStart }} → {{ report.dateEnd }}
           </span>
-          <span v-if="report.reportType" class="ml-2 text-[10px] font-bold bg-j-accent/20 text-j-glow border border-j-accent/30 px-1.5 py-0.5 rounded">
+          <span v-if="report.reportType" class="type-badge">
             {{ report.reportType }}
           </span>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <!-- Generate .docx button — only when parsed data exists -->
+
+      <div class="toolbar-right">
         <button
           v-if="report.parsedData"
           @click="generateDocx"
           :disabled="generating"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-j-accent hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-glow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          class="export-btn"
         >
-          <svg v-if="generating" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-if="generating" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
-          <svg v-else viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           {{ generating ? 'Generating…' : 'Export .docx' }}
         </button>
 
-        <div class="flex rounded-lg border border-j-border overflow-hidden">
+        <!-- Tab switcher -->
+        <div class="tab-bar">
           <button
             v-for="tab in availableTabs"
             :key="tab"
             @click="activeTab = tab"
-            class="px-3 py-1.5 text-xs font-medium transition-colors"
-            :class="activeTab === tab ? 'bg-j-accent text-white' : 'bg-j-card text-j-muted hover:text-white'"
-          >
-            {{ tab }}
-          </button>
+            class="tab-btn"
+            :class="{ 'tab-btn--active': activeTab === tab }"
+          >{{ tab }}</button>
         </div>
       </div>
     </div>
 
-    <!-- Export error — always visible regardless of active tab -->
-    <div v-if="genError" class="flex items-start gap-2.5 px-6 py-3 bg-red-950/60 border-b border-j-error/40 flex-shrink-0">
-      <svg viewBox="0 0 24 24" class="w-4 h-4 text-j-error flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Export error -->
+    <div v-if="genError" class="gen-error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="gen-error-icon">
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
-      <p class="text-xs text-red-300 leading-relaxed whitespace-pre-wrap">{{ genError }}</p>
+      <p class="gen-error-text selectable">{{ genError }}</p>
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-auto p-6">
+    <div class="content-area">
+
       <!-- No file -->
-      <div v-if="!report.rawContent" class="flex flex-col items-center justify-center h-full text-center">
-        <svg viewBox="0 0 24 24" class="w-12 h-12 text-j-border mb-4" fill="none" stroke="currentColor" stroke-width="1">
+      <div v-if="!report.rawContent" class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="empty-icon">
           <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
         </svg>
-        <p class="text-j-muted text-sm">No file loaded.</p>
-        <button @click="$router.push('/')" class="mt-3 text-xs text-j-accent hover:text-j-glow transition-colors">← Back to Generate</button>
+        <p class="empty-text">No file loaded.</p>
+        <button class="empty-link" @click="$router.push('/')">← Back to Generate</button>
+      </div>
+
+      <!-- Document preview tab -->
+      <div v-else-if="activeTab === 'Document'" class="doc-panel">
+        <div v-if="docxRendering" class="doc-loading">
+          <svg class="spin doc-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          <p>Rendering document…</p>
+        </div>
+        <div v-else-if="docxError" class="doc-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          </svg>
+          <p class="selectable">{{ docxError }}</p>
+        </div>
+        <div
+          ref="docxContainer"
+          class="docx-wrap"
+          :class="{ 'docx-wrap--hidden': docxRendering || docxError }"
+        />
       </div>
 
       <!-- Parsed Data tab -->
-      <div v-else-if="activeTab === 'Parsed Data'">
-        <div v-if="!report.parsedData" class="flex flex-col items-center justify-center h-48 text-center">
-          <p class="text-j-muted text-sm">No parsed data yet.</p>
-          <button @click="$router.push('/')" class="mt-2 text-xs text-j-accent hover:text-j-glow transition-colors">← Go back to parse</button>
+      <div v-else-if="activeTab === 'Parsed Data'" class="parsed-panel">
+        <div v-if="!report.parsedData" class="empty-state">
+          <p class="empty-text">No parsed data yet.</p>
+          <button class="empty-link" @click="$router.push('/')">← Go back to parse</button>
         </div>
-        <div v-else class="max-w-3xl mx-auto space-y-5">
-          <!-- Meta / summary -->
-          <div class="bg-j-card border border-j-border rounded-xl p-4">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-j-muted">
+        <div v-else class="parsed-content">
+          <!-- Summary card -->
+          <div class="summary-card">
+            <div class="summary-head">
+              <span class="summary-range">
                 {{ report.parsedData.reportType }} · {{ report.parsedData.dateStart }} → {{ report.parsedData.dateEnd }}
               </span>
-              <span v-if="report.parsedData.totalHours" class="text-xs font-mono text-j-glow">
-                Total: {{ report.parsedData.totalHours }}h
+              <span v-if="report.parsedData.totalHours" class="summary-hours">
+                {{ report.parsedData.totalHours }}h total
               </span>
             </div>
-            <p v-if="report.parsedData.summary" class="text-sm text-j-text leading-relaxed">
+            <p v-if="report.parsedData.summary" class="summary-text selectable">
               {{ report.parsedData.summary }}
             </p>
           </div>
 
-          <!-- Task table -->
-          <TaskTable v-if="report.parsedData.entries?.length" :rows="report.parsedData.entries" />
+          <!-- Task table with header counts -->
+          <TaskTable
+            v-if="report.parsedData.entries?.length"
+            :rows="report.parsedData.entries"
+            @remove="report.removeEntry($event)"
+          />
 
-          <!-- Ongoing tasks (PRG) -->
-          <div v-if="report.parsedData.ongoingTasks?.length" class="space-y-2">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-j-muted mb-2">Ongoing Tasks</h3>
-            <div v-for="task in report.parsedData.ongoingTasks" :key="task.name"
-                 class="bg-j-card border border-j-border rounded-xl p-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-white">{{ task.name }}</span>
-                <span class="text-xs font-mono text-j-glow">{{ task.percentComplete }}%</span>
+          <!-- Ongoing tasks -->
+          <div v-if="report.parsedData.ongoingTasks?.length">
+            <h3 class="section-label">Ongoing Tasks</h3>
+            <div v-for="task in report.parsedData.ongoingTasks" :key="task.name" class="ongoing-card">
+              <div class="ongoing-head">
+                <span class="ongoing-name">{{ task.name }}</span>
+                <span class="ongoing-pct">{{ task.percentComplete }}%</span>
               </div>
-              <div class="w-full bg-j-surface rounded-full h-1.5 mb-3">
-                <div class="bg-j-accent h-1.5 rounded-full" :style="{ width: task.percentComplete + '%' }" />
+              <div class="progress-track">
+                <div class="progress-fill" :style="{ width: task.percentComplete + '%' }" />
               </div>
-              <ul v-if="task.nextSteps?.length" class="space-y-0.5">
-                <li v-for="step in task.nextSteps" :key="step" class="flex items-start gap-2 text-xs text-j-text">
-                  <span class="mt-1.5 w-1 h-1 rounded-full bg-j-accent flex-shrink-0" />
-                  {{ step }}
+              <ul v-if="task.nextSteps?.length" class="steps-list">
+                <li v-for="step in task.nextSteps" :key="step" class="step-item">
+                  <span class="step-dot" />
+                  <span class="selectable">{{ step }}</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <!-- Raw JSON toggle -->
-          <details>
-            <summary class="text-xs text-j-muted cursor-pointer hover:text-white transition-colors select-none">Raw JSON</summary>
-            <pre class="mt-2 selectable text-xs font-mono text-j-muted bg-j-card border border-j-border rounded-xl p-4 overflow-auto">{{ JSON.stringify(report.parsedData, null, 2) }}</pre>
+          <!-- Raw JSON -->
+          <details class="raw-details">
+            <summary class="raw-summary">Raw JSON</summary>
+            <pre class="raw-json selectable">{{ JSON.stringify(report.parsedData, null, 2) }}</pre>
           </details>
-
         </div>
       </div>
 
       <!-- Rendered markdown -->
-      <div v-else-if="activeTab === 'Rendered'"
-           class="md-preview selectable max-w-3xl mx-auto"
-           v-html="rendered" />
+      <div
+        v-else-if="activeTab === 'Rendered'"
+        class="md-wrap md-preview selectable"
+        v-html="rendered"
+      />
 
       <!-- Raw markdown -->
-      <pre v-else class="selectable text-xs font-mono text-j-muted whitespace-pre-wrap leading-relaxed max-w-3xl mx-auto">{{ report.rawContent }}</pre>
+      <pre v-else class="raw-md selectable">{{ report.rawContent }}</pre>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, toRaw } from 'vue'
+import { ref, computed, toRaw, watch, nextTick } from 'vue'
 import { marked } from 'marked'
+import { renderAsync } from 'docx-preview'
 import { useReportStore } from '@/stores/report.js'
 import { useSettingsStore } from '@/stores/settings.js'
 import TaskTable from '@/components/TaskTable.vue'
@@ -146,11 +173,11 @@ const settings  = useSettingsStore()
 const generating = ref(false)
 const genError   = ref('')
 
-const activeTab = ref(report.parsedData ? 'Parsed Data' : 'Rendered')
+const activeTab = ref(report.parsedData ? 'Document' : 'Rendered')
 
 const availableTabs = computed(() => {
   const tabs = ['Rendered', 'Raw']
-  if (report.parsedData) tabs.unshift('Parsed Data')
+  if (report.parsedData) tabs.unshift('Parsed Data', 'Document')
   return tabs
 })
 
@@ -158,22 +185,70 @@ const rendered = computed(() =>
   report.rawContent ? marked.parse(report.rawContent) : ''
 )
 
+const docxContainer = ref(null)
+const docxRendering = ref(false)
+const docxError     = ref('')
+const docxRendered  = ref(false)
+
+watch(activeTab, async (tab) => {
+  if (tab === 'Document' && !docxRendered.value && report.parsedData) {
+    await nextTick()
+    await renderDocx()
+  }
+}, { immediate: true })
+
+watch(() => report.parsedData, () => {
+  docxRendered.value = false
+  if (activeTab.value === 'Document') renderDocx()
+})
+
+async function renderDocx() {
+  if (!report.parsedData) return
+  docxRendering.value = true
+  docxError.value     = ''
+  try {
+    await settings.load()
+    const uint8 = await window.cole.renderReport({
+      parsedData:   toRaw(report.parsedData),
+      userInfo:     buildUserInfo(),
+      employeeType: report.employeeType,
+    })
+    await nextTick()
+    if (docxContainer.value) {
+      await renderAsync(uint8, docxContainer.value, null, {
+        className:    'docx',
+        inWrapper:    true,
+        ignoreWidth:  false,
+        ignoreHeight: false,
+        useBase64URL: true,
+      })
+      docxRendered.value = true
+    }
+  } catch (err) {
+    docxError.value = err.message || 'Failed to render preview.'
+  } finally {
+    docxRendering.value = false
+  }
+}
+
+function buildUserInfo() {
+  return {
+    reporterName:    settings.reporterName,
+    reporterNameSig: settings.reporterNameSig,
+    position:        settings.position,
+    office:          settings.office,
+    supervisorName:  settings.supervisorName,
+    supervisorPos1:  settings.supervisorPos1,
+    supervisorPos2:  settings.supervisorPos2,
+  }
+}
+
 async function generateDocx() {
   if (!report.parsedData) return
   generating.value = true
   genError.value   = ''
   try {
     await settings.load()
-    const userInfo = {
-      reporterName:    settings.reporterName,
-      reporterNameSig: settings.reporterNameSig,
-      position:        settings.position,
-      office:          settings.office,
-      supervisorName:  settings.supervisorName,
-      supervisorPos1:  settings.supervisorPos1,
-      supervisorPos2:  settings.supervisorPos2,
-    }
-
     const d = toRaw(report.parsedData)
     const defaultName = `Accomplishment Report ${d.dateStart} to ${d.dateEnd}.docx`
     const savePath = await window.cole.showSaveDialog({
@@ -181,8 +256,12 @@ async function generateDocx() {
       filters: [{ name: 'Word Document', extensions: ['docx'] }],
     })
     if (!savePath) return
-
-    await window.cole.generateReport({ parsedData: d, userInfo, outputPath: savePath })
+    await window.cole.generateReport({
+      parsedData:   d,
+      userInfo:     buildUserInfo(),
+      employeeType: report.employeeType,
+      outputPath:   savePath,
+    })
     await window.cole.openPath(savePath)
   } catch (err) {
     genError.value = err.message || 'Failed to generate report.'
@@ -191,3 +270,325 @@ async function generateDocx() {
   }
 }
 </script>
+
+<style scoped>
+.preview-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: 12px;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.back-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.back-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.back-btn svg { width: 14px; height: 14px; }
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.file-meta-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.file-meta-range {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.type-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(0,122,255,0.1);
+  color: #007AFF;
+  border: 1px solid rgba(0,122,255,0.2);
+  white-space: nowrap;
+}
+
+/* Export button */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: #007AFF;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.export-btn:hover:not(:disabled) { background: #0071e3; }
+.export-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.export-btn svg { width: 13px; height: 13px; }
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tab-btn {
+  padding: 0 12px;
+  height: 30px;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.tab-btn:last-child { border-right: none; }
+.tab-btn:hover { background: var(--color-surface-3); color: var(--color-text); }
+.tab-btn--active {
+  background: #007AFF;
+  color: #fff;
+}
+
+/* Gen error */
+.gen-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(255,59,48,0.07);
+  border-bottom: 1px solid rgba(255,59,48,0.15);
+  flex-shrink: 0;
+}
+.gen-error-icon { width: 15px; height: 15px; color: #FF3B30; flex-shrink: 0; margin-top: 1px; }
+.gen-error-text { font-size: 12px; color: #FF3B30; margin: 0; line-height: 1.5; }
+
+/* Content area */
+.content-area { flex: 1; overflow: auto; }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60%;
+  text-align: center;
+  padding: 40px;
+}
+.empty-icon { width: 48px; height: 48px; color: var(--color-border); margin-bottom: 16px; }
+.empty-text { font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px; }
+.empty-link {
+  font-size: 12px;
+  color: #007AFF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.empty-link:hover { text-decoration: underline; }
+
+/* Document panel */
+.doc-panel { height: 100%; }
+.doc-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.doc-spin { width: 22px; height: 22px; color: #007AFF; }
+.doc-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 20px;
+  padding: 14px;
+  background: rgba(255,59,48,0.07);
+  border: 1px solid rgba(255,59,48,0.2);
+  border-radius: 12px;
+  color: #FF3B30;
+  font-size: 12px;
+}
+.doc-error svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* Docx wrap */
+.docx-wrap {
+  background: var(--color-surface-2);
+  min-height: 100%;
+  padding: 24px;
+}
+.docx-wrap--hidden { display: none; }
+:deep(.docx-wrapper) { background: transparent !important; padding: 0 !important; }
+:deep(.docx) { box-shadow: 0 4px 24px rgba(0,0,0,0.15); margin: 0 auto; }
+
+/* Parsed panel */
+.parsed-panel { padding: 24px; }
+.parsed-content { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+.summary-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+}
+.summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.summary-range {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.summary-hours {
+  font-size: 12px;
+  font-weight: 700;
+  color: #007AFF;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+.summary-text {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Section label */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
+
+/* Ongoing tasks */
+.ongoing-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 8px;
+}
+.ongoing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.ongoing-name { font-size: 13px; font-weight: 500; color: var(--color-text); }
+.ongoing-pct { font-size: 12px; font-weight: 700; color: #007AFF; font-family: 'JetBrains Mono', Consolas, monospace; }
+.progress-track {
+  height: 4px;
+  background: var(--color-surface-2);
+  border-radius: 2px;
+  margin-bottom: 10px;
+}
+.progress-fill { height: 100%; background: #007AFF; border-radius: 2px; }
+
+.steps-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.step-item { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--color-text); }
+.step-dot { width: 5px; height: 5px; border-radius: 50%; background: #007AFF; flex-shrink: 0; margin-top: 2px; }
+
+/* Raw JSON */
+.raw-details { }
+.raw-summary {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s;
+}
+.raw-summary:hover { color: var(--color-text); }
+.raw-json {
+  margin-top: 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px;
+  overflow: auto;
+  line-height: 1.5;
+}
+
+/* Rendered markdown tab */
+.md-wrap { padding: 28px; max-width: 680px; margin: 0 auto; }
+
+/* Raw markdown tab */
+.raw-md {
+  padding: 28px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  line-height: 1.7;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Spin animation */
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

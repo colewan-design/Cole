@@ -7,10 +7,15 @@ import { registerClaudeHandlers } from './ipc/claudeAPI.js'
 import { registerDocxHandlers } from './ipc/docxGenerator.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-process.env.APP_ROOT = path.join(__dirname, '..')
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
-const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
+
+// app.getAppPath() resolves correctly both in dev and inside a packaged asar
+function getRendererDist() {
+  return path.join(app.getAppPath(), 'dist')
+}
+
+process.env.APP_ROOT = app.getAppPath()
 
 let mainWindow
 
@@ -21,6 +26,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 640,
     backgroundColor: '#080d1a',
+    icon: path.join(app.getAppPath(), 'public', 'icon.png'),
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#0d1526',
@@ -39,7 +45,7 @@ function createWindow() {
     mainWindow.loadURL(VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    mainWindow.loadFile(path.join(getRendererDist(), 'index.html'))
   }
 }
 
@@ -48,6 +54,7 @@ app.whenReady().then(() => {
   registerSettingsHandlers(ipcMain)
   registerClaudeHandlers(ipcMain)
   registerDocxHandlers(ipcMain)
+  ipcMain.handle('shell:open-external', (_, url) => shell.openExternal(url))
   createWindow()
 })
 

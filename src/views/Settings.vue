@@ -14,6 +14,10 @@
                   :class="['btn-provider', provider === 'claude' ? 'btn-provider--active' : '']">
             Claude (API)
           </button>
+          <button @click="setProvider('gemini')"
+                  :class="['btn-provider', provider === 'gemini' ? 'btn-provider--active' : '']">
+            Gemini (free)
+          </button>
           <button @click="setProvider('ollama')"
                   :class="['btn-provider', provider === 'ollama' ? 'btn-provider--active' : '']">
             Ollama (offline)
@@ -38,6 +42,27 @@
               <span class="text-xs text-j-muted">{{ settings.hasApiKey ? 'Key saved' : 'No key saved' }}</span>
             </div>
             <button @click="saveApiKey" :disabled="!apiKey" class="btn-primary text-xs px-3 py-1.5">Save Key</button>
+          </div>
+        </template>
+
+        <template v-if="provider === 'gemini'">
+          <div class="text-xs text-j-muted bg-j-surface border border-j-border rounded-lg px-3 py-2">
+            Free tier: 15 requests/min, 1500 requests/day. Get a key at <span class="font-mono text-j-glow">aistudio.google.com</span>.
+          </div>
+          <div>
+            <label class="field-label">Gemini API Key</label>
+            <div class="flex gap-2 mt-1.5">
+              <input v-model="geminiKey" :type="showGeminiKey ? 'text' : 'password'"
+                     placeholder="AIza…" class="input flex-1 font-mono" />
+              <button @click="showGeminiKey = !showGeminiKey" class="btn-ghost px-3">{{ showGeminiKey ? 'Hide' : 'Show' }}</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full" :class="settings.hasGeminiKey ? 'bg-j-success' : 'bg-j-muted'" />
+              <span class="text-xs text-j-muted">{{ settings.hasGeminiKey ? 'Key saved' : 'No key saved' }}</span>
+            </div>
+            <button @click="saveGeminiKey" :disabled="!geminiKey" class="btn-primary text-xs px-3 py-1.5">Save Key</button>
           </div>
         </template>
 
@@ -71,38 +96,38 @@
       <div class="card space-y-3">
         <div>
           <label class="field-label">Full Name (Header)</label>
-          <input v-model="reporterName" placeholder="LAST, FIRST MIDDLE — e.g. COLEWAN, CHRISTIAN FIARAWE"
+          <input v-model="reporterName" placeholder="LAST, FIRST MIDDLE"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div>
           <label class="field-label">Full Name (Signature)</label>
-          <input v-model="reporterNameSig" placeholder="e.g. CHRISTIAN F. COLEWAN"
+          <input v-model="reporterNameSig" placeholder="First M. Last"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div>
           <label class="field-label">Position</label>
-          <input v-model="position" placeholder="e.g. Information System Analyst I"
+          <input v-model="position" placeholder="Position title"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div>
           <label class="field-label">College / Office Assignment</label>
-          <input v-model="office" placeholder="e.g. Compensation, Benefits, and Other Obligations"
+          <input v-model="office" placeholder="College or office name"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <hr class="border-j-border" />
         <div>
           <label class="field-label">Supervisor Name</label>
-          <input v-model="supervisorName" placeholder="e.g. SUSAN P. BUASEN-OCASEN"
+          <input v-model="supervisorName" placeholder="Supervisor full name"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div>
           <label class="field-label">Supervisor Title Line 1</label>
-          <input v-model="supervisorPos1" placeholder="e.g. Chief, CBOO"
+          <input v-model="supervisorPos1" placeholder="Title line 1"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div>
           <label class="field-label">Supervisor Title Line 2</label>
-          <input v-model="supervisorPos2" placeholder="e.g. Administrative Officer V"
+          <input v-model="supervisorPos2" placeholder="Title line 2"
                  class="input w-full mt-1.5 text-xs font-mono" />
         </div>
         <div class="flex justify-end pt-1">
@@ -151,8 +176,10 @@ import { useSettingsStore } from '@/stores/settings.js'
 
 const settings = useSettingsStore()
 
-const apiKey   = ref('')
-const showKey  = ref(false)
+const apiKey       = ref('')
+const showKey      = ref(false)
+const geminiKey    = ref('')
+const showGeminiKey = ref(false)
 const toast    = ref('')
 const provider = ref('claude')
 
@@ -181,13 +208,13 @@ onMounted(async () => {
   ollamaUrl.value       = settings.ollamaUrl
   ollamaModel.value     = settings.ollamaModel
   if (provider.value === 'ollama') await fetchOllamaModels()
-  reporterName.value    = settings.reporterName
-  reporterNameSig.value = settings.reporterNameSig
-  position.value        = settings.position
-  office.value          = settings.office
-  supervisorName.value  = settings.supervisorName
-  supervisorPos1.value  = settings.supervisorPos1
-  supervisorPos2.value  = settings.supervisorPos2
+  reporterName.value    = settings.reporterName    || 'COLEWAN, CHRISTIAN FIARAWE'
+  reporterNameSig.value = settings.reporterNameSig || 'CHRISTIAN F. COLEWAN'
+  position.value        = settings.position        || 'Information System Analyst I'
+  office.value          = settings.office          || 'Compensation, Benefits, and Other Obligations'
+  supervisorName.value  = settings.supervisorName  || 'SUSAN P. BUASEN-OCASEN'
+  supervisorPos1.value  = settings.supervisorPos1  || 'Chief, CBOO'
+  supervisorPos2.value  = settings.supervisorPos2  || 'Administrative Officer V'
   vaultRoot.value       = settings.vaultRoot
   inputPath.value       = settings.inputPath
   outputPath.value      = settings.outputPath
@@ -209,6 +236,13 @@ async function saveApiKey() {
   await settings.save('apiKey', apiKey.value)
   apiKey.value = ''
   showToast('API key saved')
+}
+
+async function saveGeminiKey() {
+  await settings.save('geminiKey', geminiKey.value)
+  geminiKey.value = ''
+  await settings.load()
+  showToast('Gemini key saved')
 }
 
 async function saveOllama() {

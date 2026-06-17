@@ -11,7 +11,7 @@
           : 'border-j-border bg-j-card text-j-muted hover:border-j-accent/40 hover:text-j-text',
       ]"
     >
-      <span class="text-lg">{{ type.emoji }}</span>
+      <i :class="['fi', type.icon, 'text-lg leading-none']" />
       <span class="text-xs font-semibold tracking-wide">{{ type.id }}</span>
       <span class="text-[10px] leading-tight opacity-75">{{ type.label }}</span>
       <div v-if="modelValue === type.id"
@@ -25,8 +25,8 @@ defineProps({ modelValue: String })
 defineEmits(['update:modelValue'])
 
 const types = [
-  { id: 'AR',  emoji: '📋', label: 'Accomplishment Report' },
-  { id: 'DTR', emoji: '🕐', label: 'Daily Time Record' },
-  { id: 'PRG', emoji: '📈', label: 'Progress Report' },
+  { id: 'AR',  icon: 'fi-rr-list-check',    label: 'Accomplishment Report' },
+  { id: 'DTR', icon: 'fi-rr-clock',          label: 'Daily Time Record' },
+  { id: 'PRG', icon: 'fi-rr-chart-line-up',  label: 'Progress Report' },
 ]
 </script>

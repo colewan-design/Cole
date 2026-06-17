@@ -7,6 +7,8 @@ export default {
   files: [
     'dist/**/*',
     'dist-electron/**/*',
+    'public/**/*',
+    'resources/**/*',
   ],
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],

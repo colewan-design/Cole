@@ -4,6 +4,7 @@ import electron from 'vite-plugin-electron/simple'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  base: './',
   plugins: [
     vue(),
     electron({

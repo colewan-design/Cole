@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('cole', {
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   getAllSettings: ()       => ipcRenderer.invoke('settings:get-all'),
 
+  // Shell
+  openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+
   // Ollama
   listOllamaModels: (url) => ipcRenderer.invoke('ollama:list-models', url),
 
@@ -21,4 +24,5 @@ contextBridge.exposeInMainWorld('cole', {
 
   // Docx generation (Phase 3)
   generateReport: (payload) => ipcRenderer.invoke('docx:generate', payload),
+  renderReport:   (payload) => ipcRenderer.invoke('docx:render',   payload),
 })

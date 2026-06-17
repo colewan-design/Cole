@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { app, safeStorage } from 'electron'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -20,16 +21,19 @@ async function getProviderSettings() {
   }
 }
 
-async function getApiKey() {
+async function getSecret(key) {
   try {
     const raw = await readFile(SECRETS_PATH, 'utf-8')
     const secrets = JSON.parse(raw)
-    if (!secrets.apiKey) return null
-    return safeStorage.decryptString(Buffer.from(secrets.apiKey, 'base64'))
+    if (!secrets[key]) return null
+    return safeStorage.decryptString(Buffer.from(secrets[key], 'base64'))
   } catch {
     return null
   }
 }
+
+// Keep backwards-compat alias used below
+const getApiKey = () => getSecret('apiKey')
 
 const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december']
 
@@ -234,6 +238,13 @@ Extract progress on ongoing tasks. Write all descriptions in plain, non-technica
 }`
 }
 
+async function parseWithGemini({ geminiKey, prompt }) {
+  const genAI = new GoogleGenerativeAI(geminiKey)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+  const result = await model.generateContent(`${SYSTEM}\n\n${prompt}`)
+  return result.response.text().trim()
+}
+
 async function parseWithOllama({ ollamaUrl, ollamaModel, prompt }) {
   const res = await fetch(`${ollamaUrl}/api/chat`, {
     method: 'POST',
@@ -264,6 +275,10 @@ export function registerClaudeHandlers(ipcMain) {
     let raw
     if (provider === 'ollama') {
       raw = await parseWithOllama({ ollamaUrl, ollamaModel, prompt })
+    } else if (provider === 'gemini') {
+      const geminiKey = await getSecret('geminiKey')
+      if (!geminiKey) throw new Error('No Gemini API key found. Add it in Settings first.')
+      raw = await parseWithGemini({ geminiKey, prompt })
     } else {
       const apiKey = await getApiKey()
       if (!apiKey) throw new Error('No API key found. Add your Claude API key in Settings first.')

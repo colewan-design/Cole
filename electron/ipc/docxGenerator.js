@@ -182,9 +182,17 @@ async function letterheadRow() {
 
 // ─── Title box — centered on its own row ──────────────────────────────────────
 
-function titleBoxSection() {
-  const boxW = Math.round(TBL_WIDTH * 0.56)
-  const padW = Math.floor((TBL_WIDTH - boxW) / 2)
+const EMPLOYEE_TYPE_TITLES = {
+  casual:    'Accomplishment Report for CASUAL Personnel',
+  plantilla: 'Accomplishment Report for PLANTILLA Personnel',
+  cos:       'Accomplishment Report for COS Personnel',
+  external:  'Accomplishment Report',
+}
+
+function titleBoxSection(employeeType = 'casual') {
+  const title = EMPLOYEE_TYPE_TITLES[employeeType] ?? EMPLOYEE_TYPE_TITLES.casual
+  const boxW  = Math.round(TBL_WIDTH * 0.56)
+  const padW  = Math.floor((TBL_WIDTH - boxW) / 2)
 
   return new Table({
     width: { size: TBL_WIDTH, type: WidthType.DXA },
@@ -204,7 +212,7 @@ function titleBoxSection() {
             children: [new Paragraph({
               alignment: AlignmentType.CENTER,
               spacing: { before: 60, after: 60 },
-              children: [new TextRun({ text: 'Accomplishment Report for CASUAL Personnel', font: FONT_TITLE, size: SZ_TITLE })],
+              children: [new TextRun({ text: title, font: FONT_TITLE, size: SZ_TITLE })],
             })],
           }),
           new TableCell({
@@ -401,48 +409,58 @@ function signatureTable(userInfo) {
   })
 }
 
-// ─── IPC handler ─────────────────────────────────────────────────────────────
+// ─── Shared doc builder ───────────────────────────────────────────────────────
 
-export function registerDocxHandlers(ipcMain) {
-  ipcMain.handle('docx:generate', async (_, { parsedData, userInfo = {}, outputPath }) => {
-    if (!outputPath) throw new Error('No output path provided.')
-    if (!parsedData?.dateStart || !parsedData?.dateEnd) throw new Error('Parsed data is missing date range.')
-    const period = formatPeriod(parsedData.dateStart, parsedData.dateEnd)
+async function buildDoc(parsedData, userInfo, employeeType) {
+  const period     = formatPeriod(parsedData.dateStart, parsedData.dateEnd)
+  const isExternal = employeeType === 'external'
+  const letterhead = isExternal ? null : await letterheadRow()
 
-    const letterhead = await letterheadRow()
-
-    const doc = new Document({
-      styles: {
-        default: {
-          document: {
-            run: { font: 'Calibri', size: SZ_HDR },
-          },
+  return new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: 'Calibri', size: SZ_HDR },
         },
       },
-      sections: [{
-        properties: {
-          page: {
-            size:   { width: PAGE.width, height: PAGE.height },
-            margin: { ...MARGIN, header: 360 },
-          },
+    },
+    sections: [{
+      properties: {
+        page: {
+          size:   { width: PAGE.width, height: PAGE.height },
+          margin: { ...MARGIN, header: 360 },
         },
-        headers: {
-          default: new Header({ children: [letterhead] }),
-        },
-        children: [
-          titleBoxSection(),
-          new Paragraph({ children: [] }),
-          ...headerParagraphs(period, userInfo),
-          new Paragraph({ children: [] }),
-          mainTable(parsedData),
-          new Paragraph({ children: [] }),
-          signatureTable(userInfo),
-        ],
-      }],
-    })
+      },
+      ...(letterhead ? { headers: { default: new Header({ children: [letterhead] }) } } : {}),
+      children: [
+        titleBoxSection(employeeType),
+        new Paragraph({ children: [] }),
+        ...headerParagraphs(period, userInfo),
+        new Paragraph({ children: [] }),
+        mainTable(parsedData),
+        new Paragraph({ children: [] }),
+        signatureTable(userInfo),
+      ],
+    }],
+  })
+}
 
+// ─── IPC handlers ─────────────────────────────────────────────────────────────
+
+export function registerDocxHandlers(ipcMain) {
+  ipcMain.handle('docx:generate', async (_, { parsedData, userInfo = {}, employeeType = 'casual', outputPath }) => {
+    if (!outputPath) throw new Error('No output path provided.')
+    if (!parsedData?.dateStart || !parsedData?.dateEnd) throw new Error('Parsed data is missing date range.')
+    const doc    = await buildDoc(parsedData, userInfo, employeeType)
     const buffer = await Packer.toBuffer(doc)
     await writeFile(outputPath, buffer)
     return outputPath
+  })
+
+  ipcMain.handle('docx:render', async (_, { parsedData, userInfo = {}, employeeType = 'casual' }) => {
+    if (!parsedData?.dateStart || !parsedData?.dateEnd) throw new Error('Parsed data is missing date range.')
+    const doc    = await buildDoc(parsedData, userInfo, employeeType)
+    const buffer = await Packer.toBuffer(doc)
+    return new Uint8Array(buffer)
   })
 }
