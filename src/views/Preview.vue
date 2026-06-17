@@ -13,13 +13,22 @@
           <span v-if="report.dateStart" class="file-meta-range">
             {{ report.dateStart }} → {{ report.dateEnd }}
           </span>
-          <span v-if="report.reportType" class="type-badge">
-            {{ report.reportType }}
-          </span>
+          <span v-if="report.reportType" class="type-badge">{{ report.reportType }}</span>
         </div>
       </div>
 
       <div class="toolbar-right">
+        <!-- Tab switcher -->
+        <div class="tab-bar">
+          <button
+            v-for="tab in availableTabs"
+            :key="tab"
+            @click="activeTab = tab"
+            class="tab-btn"
+            :class="{ 'tab-btn--active': activeTab === tab }"
+          >{{ tab }}</button>
+        </div>
+
         <button
           v-if="report.parsedData"
           @click="generateDocx"
@@ -34,17 +43,6 @@
           </svg>
           {{ generating ? 'Generating…' : 'Export .docx' }}
         </button>
-
-        <!-- Tab switcher -->
-        <div class="tab-bar">
-          <button
-            v-for="tab in availableTabs"
-            :key="tab"
-            @click="activeTab = tab"
-            class="tab-btn"
-            :class="{ 'tab-btn--active': activeTab === tab }"
-          >{{ tab }}</button>
-        </div>
       </div>
     </div>
 
@@ -68,7 +66,7 @@
         <button class="empty-link" @click="$router.push('/')">← Back to Generate</button>
       </div>
 
-      <!-- Document preview tab -->
+      <!-- Document tab -->
       <div v-else-if="activeTab === 'Document'" class="doc-panel">
         <div v-if="docxRendering" class="doc-loading">
           <svg class="spin doc-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -82,11 +80,7 @@
           </svg>
           <p class="selectable">{{ docxError }}</p>
         </div>
-        <div
-          ref="docxContainer"
-          class="docx-wrap"
-          :class="{ 'docx-wrap--hidden': docxRendering || docxError }"
-        />
+        <div ref="docxContainer" class="docx-wrap" :class="{ 'docx-wrap--hidden': docxRendering || docxError }" />
       </div>
 
       <!-- Parsed Data tab -->
@@ -95,23 +89,34 @@
           <p class="empty-text">No parsed data yet.</p>
           <button class="empty-link" @click="$router.push('/')">← Go back to parse</button>
         </div>
+
         <div v-else class="parsed-content">
-          <!-- Summary card -->
-          <div class="summary-card">
-            <div class="summary-head">
-              <span class="summary-range">
-                {{ report.parsedData.reportType }} · {{ report.parsedData.dateStart }} → {{ report.parsedData.dateEnd }}
-              </span>
-              <span v-if="report.parsedData.totalHours" class="summary-hours">
-                {{ report.parsedData.totalHours }}h total
-              </span>
+          <!-- Summary strip -->
+          <div class="summary-strip">
+            <div class="summary-chip">
+              <span class="chip-label">Type</span>
+              <span class="chip-val">{{ report.parsedData.reportType }}</span>
             </div>
-            <p v-if="report.parsedData.summary" class="summary-text selectable">
-              {{ report.parsedData.summary }}
-            </p>
+            <div class="summary-chip">
+              <span class="chip-label">Period</span>
+              <span class="chip-val">{{ report.parsedData.dateStart }} → {{ report.parsedData.dateEnd }}</span>
+            </div>
+            <div v-if="report.parsedData.totalHours" class="summary-chip">
+              <span class="chip-label">Total Hours</span>
+              <span class="chip-val accent">{{ report.parsedData.totalHours }}h</span>
+            </div>
+            <div v-if="report.parsedData.entries?.length" class="summary-chip">
+              <span class="chip-label">Entries</span>
+              <span class="chip-val">{{ report.parsedData.entries.length }}</span>
+            </div>
           </div>
 
-          <!-- Task table with header counts -->
+          <!-- Summary text -->
+          <div v-if="report.parsedData.summary" class="summary-card">
+            <p class="summary-text selectable">{{ report.parsedData.summary }}</p>
+          </div>
+
+          <!-- Task table -->
           <TaskTable
             v-if="report.parsedData.entries?.length"
             :rows="report.parsedData.entries"
@@ -155,7 +160,6 @@
 
       <!-- Raw markdown -->
       <pre v-else class="raw-md selectable">{{ report.rawContent }}</pre>
-
     </div>
   </div>
 </template>
@@ -166,6 +170,7 @@ import { marked } from 'marked'
 import { renderAsync } from 'docx-preview'
 import { useReportStore } from '@/stores/report.js'
 import { useSettingsStore } from '@/stores/settings.js'
+import { cole } from '@/lib/cole.js'
 import TaskTable from '@/components/TaskTable.vue'
 
 const report    = useReportStore()
@@ -208,7 +213,7 @@ async function renderDocx() {
   docxError.value     = ''
   try {
     await settings.load()
-    const uint8 = await window.cole.renderReport({
+    const uint8 = await cole.renderReport({
       parsedData:   toRaw(report.parsedData),
       userInfo:     buildUserInfo(),
       employeeType: report.employeeType,
@@ -251,18 +256,18 @@ async function generateDocx() {
     await settings.load()
     const d = toRaw(report.parsedData)
     const defaultName = `Accomplishment Report ${d.dateStart} to ${d.dateEnd}.docx`
-    const savePath = await window.cole.showSaveDialog({
+    const savePath = await cole.showSaveDialog({
       defaultPath: defaultName,
       filters: [{ name: 'Word Document', extensions: ['docx'] }],
     })
     if (!savePath) return
-    await window.cole.generateReport({
+    await cole.generateReport({
       parsedData:   d,
       userInfo:     buildUserInfo(),
       employeeType: report.employeeType,
       outputPath:   savePath,
     })
-    await window.cole.openPath(savePath)
+    await cole.openPath(savePath)
   } catch (err) {
     genError.value = err.message || 'Failed to generate report.'
   } finally {
@@ -321,12 +326,7 @@ async function generateDocx() {
 .back-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
 .back-btn svg { width: 14px; height: 14px; }
 
-.file-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
+.file-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .file-meta-name {
   font-size: 13px;
   font-weight: 500;
@@ -348,7 +348,7 @@ async function generateDocx() {
   padding: 2px 7px;
   border-radius: 20px;
   background: rgba(0,122,255,0.1);
-  color: #007AFF;
+  color: var(--color-primary);
   border: 1px solid rgba(0,122,255,0.2);
   white-space: nowrap;
 }
@@ -362,7 +362,7 @@ async function generateDocx() {
   height: 32px;
   border-radius: 10px;
   border: none;
-  background: #007AFF;
+  background: var(--color-primary);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -379,13 +379,14 @@ async function generateDocx() {
   border: 1px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
+  background: var(--color-surface-2);
 }
 .tab-btn {
   padding: 0 12px;
   height: 30px;
   border: none;
   border-right: 1px solid var(--color-border);
-  background: var(--color-surface-2);
+  background: transparent;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 500;
@@ -394,10 +395,7 @@ async function generateDocx() {
 }
 .tab-btn:last-child { border-right: none; }
 .tab-btn:hover { background: var(--color-surface-3); color: var(--color-text); }
-.tab-btn--active {
-  background: #007AFF;
-  color: #fff;
-}
+.tab-btn--active { background: var(--color-primary); color: #fff; }
 
 /* Gen error */
 .gen-error {
@@ -409,8 +407,8 @@ async function generateDocx() {
   border-bottom: 1px solid rgba(255,59,48,0.15);
   flex-shrink: 0;
 }
-.gen-error-icon { width: 15px; height: 15px; color: #FF3B30; flex-shrink: 0; margin-top: 1px; }
-.gen-error-text { font-size: 12px; color: #FF3B30; margin: 0; line-height: 1.5; }
+.gen-error-icon { width: 15px; height: 15px; color: var(--color-danger); flex-shrink: 0; margin-top: 1px; }
+.gen-error-text { font-size: 12px; color: var(--color-danger); margin: 0; line-height: 1.5; }
 
 /* Content area */
 .content-area { flex: 1; overflow: auto; }
@@ -429,7 +427,7 @@ async function generateDocx() {
 .empty-text { font-size: 13px; color: var(--color-text-muted); margin: 0 0 10px; }
 .empty-link {
   font-size: 12px;
-  color: #007AFF;
+  color: var(--color-primary);
   background: none;
   border: none;
   cursor: pointer;
@@ -449,7 +447,7 @@ async function generateDocx() {
   color: var(--color-text-muted);
   font-size: 12px;
 }
-.doc-spin { width: 22px; height: 22px; color: #007AFF; }
+.doc-spin { width: 22px; height: 22px; color: var(--color-primary); }
 .doc-error {
   display: flex;
   align-items: flex-start;
@@ -459,12 +457,10 @@ async function generateDocx() {
   background: rgba(255,59,48,0.07);
   border: 1px solid rgba(255,59,48,0.2);
   border-radius: 12px;
-  color: #FF3B30;
+  color: var(--color-danger);
   font-size: 12px;
 }
 .doc-error svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
-
-/* Docx wrap */
 .docx-wrap {
   background: var(--color-surface-2);
   min-height: 100%;
@@ -475,34 +471,47 @@ async function generateDocx() {
 :deep(.docx) { box-shadow: 0 4px 24px rgba(0,0,0,0.15); margin: 0 auto; }
 
 /* Parsed panel */
-.parsed-panel { padding: 24px; }
-.parsed-content { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.parsed-panel { padding: 20px 24px; }
+.parsed-content { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 
-.summary-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-card);
+/* Summary strip */
+.summary-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.summary-head {
+.summary-chip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
 }
-.summary-range {
-  font-size: 11px;
+.chip-label {
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
-.summary-hours {
+.chip-val {
   font-size: 12px;
-  font-weight: 700;
-  color: #007AFF;
-  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.chip-val.accent { color: var(--color-primary); font-family: 'JetBrains Mono', Consolas, monospace; }
+
+/* Summary card */
+.summary-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-card);
 }
 .summary-text {
   font-size: 13px;
@@ -518,7 +527,7 @@ async function generateDocx() {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
-  margin: 0 0 10px;
+  margin: 4px 0 8px;
 }
 
 /* Ongoing tasks */
@@ -537,21 +546,14 @@ async function generateDocx() {
   margin-bottom: 8px;
 }
 .ongoing-name { font-size: 13px; font-weight: 500; color: var(--color-text); }
-.ongoing-pct { font-size: 12px; font-weight: 700; color: #007AFF; font-family: 'JetBrains Mono', Consolas, monospace; }
-.progress-track {
-  height: 4px;
-  background: var(--color-surface-2);
-  border-radius: 2px;
-  margin-bottom: 10px;
-}
-.progress-fill { height: 100%; background: #007AFF; border-radius: 2px; }
-
+.ongoing-pct { font-size: 12px; font-weight: 700; color: var(--color-primary); font-family: 'JetBrains Mono', Consolas, monospace; }
+.progress-track { height: 4px; background: var(--color-surface-2); border-radius: 2px; margin-bottom: 10px; }
+.progress-fill { height: 100%; background: var(--color-primary); border-radius: 2px; }
 .steps-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .step-item { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--color-text); }
-.step-dot { width: 5px; height: 5px; border-radius: 50%; background: #007AFF; flex-shrink: 0; margin-top: 2px; }
+.step-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-primary); flex-shrink: 0; }
 
 /* Raw JSON */
-.raw-details { }
 .raw-summary {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -573,10 +575,10 @@ async function generateDocx() {
   line-height: 1.5;
 }
 
-/* Rendered markdown tab */
+/* Rendered markdown */
 .md-wrap { padding: 28px; max-width: 680px; margin: 0 auto; }
 
-/* Raw markdown tab */
+/* Raw markdown */
 .raw-md {
   padding: 28px;
   font-size: 11px;
@@ -588,7 +590,7 @@ async function generateDocx() {
   margin: 0 auto;
 }
 
-/* Spin animation */
+/* Spin */
 .spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

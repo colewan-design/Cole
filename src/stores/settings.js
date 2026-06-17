@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { cole } from '@/lib/cole.js'
 
 export const useSettingsStore = defineStore('settings', () => {
   const hasApiKey        = ref(false)
@@ -21,7 +22,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const supervisorPos2   = ref('')   // e.g. Administrative Officer V
 
   async function load() {
-    const all = await window.cole.getAllSettings()
+    const all = await cole.getAllSettings()
     hasApiKey.value       = all.hasApiKey       ?? false
     hasGeminiKey.value    = all.hasGeminiKey    ?? false
     inputPath.value       = all.inputPath       ?? ''
@@ -40,7 +41,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function save(key, value) {
-    await window.cole.setSetting(key, value)
+    await cole.setSetting(key, value)
     const map = {
       inputPath, outputPath, vaultRoot,
       reporterName, reporterNameSig, position, office,

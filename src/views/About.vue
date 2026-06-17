@@ -69,17 +69,19 @@
 </template>
 
 <script setup>
+import { cole } from '@/lib/cole.js'
+
 const stack = [
-  { name: 'Electron',    icon: 'fi-rr-computer',      role: 'Desktop shell' },
+  { name: 'Go + Wails',  icon: 'fi-rr-computer',      role: 'Desktop shell' },
   { name: 'Vue 3',       icon: 'fi-rr-layers',        role: 'UI framework' },
   { name: 'Tailwind',    icon: 'fi-rr-palette',       role: 'Styling' },
   { name: 'Claude API',  icon: 'fi-rr-robot',         role: 'AI parsing' },
-  { name: 'docx',        icon: 'fi-rr-document',      role: 'Report generation' },
+  { name: 'Open XML',    icon: 'fi-rr-document',      role: 'Report generation' },
   { name: 'Pinia',       icon: 'fi-rr-database',      role: 'State management' },
 ]
 
 function openLink(url) {
-  window.cole.openExternal(url)
+  cole.openExternal(url)
 }
 </script>
 

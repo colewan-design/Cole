@@ -2,52 +2,24 @@
   "name": "cole-app",
   "version": "0.1.0",
   "description": "Cole — AI Report Assistant for Obsidian notes",
-  "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder",
-    "preview": "vite preview"
-  },
-  "build": {
-    "appId": "com.cole.report-assistant",
-    "productName": "Cole",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "public/**/*"
-    ],
-    "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "icon": "public/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+    "build": "vite build",
+    "preview": "vite preview",
+    "desktop:dev": "wails dev",
+    "desktop:build": "wails build"
   },
   "dependencies": {},
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.54.0",
-    "@google/generative-ai": "^0.24.1",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.17",
-    "docx": "^8.5.0",
     "docx-preview": "^0.3.7",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
     "marked": "^12.0.0",
     "pinia": "^2.1.7",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "vite": "^5.0.0",
-    "vite-plugin-electron": "^0.28.0",
-    "vite-plugin-electron-renderer": "^0.14.5",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
   }

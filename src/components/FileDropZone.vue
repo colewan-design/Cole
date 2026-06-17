@@ -1,29 +1,21 @@
 <template>
   <div
-    class="relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer"
-    :class="[
-      isDragging
-        ? 'border-j-accent bg-j-accent/10 shadow-glow'
-        : 'border-j-border bg-j-card hover:border-j-accent/50 hover:bg-j-card/80',
-    ]"
+    class="drop-zone"
+    :class="{ 'drop-zone--over': isDragging }"
     @click="pick"
     @dragover.prevent="isDragging = true"
     @dragleave.prevent="isDragging = false"
     @drop.prevent="onDrop"
   >
-    <div class="flex flex-col items-center gap-3">
-      <div class="w-12 h-12 rounded-full flex items-center justify-center"
-           :class="isDragging ? 'bg-j-accent/20' : 'bg-j-surface'">
-        <svg viewBox="0 0 24 24" class="w-6 h-6" :class="isDragging ? 'text-j-glow' : 'text-j-muted'"
-             fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+    <div class="drop-inner">
+      <div class="drop-icon-wrap" :class="{ 'drop-icon-wrap--over': isDragging }">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
         </svg>
       </div>
-      <div>
-        <p class="text-sm font-medium" :class="isDragging ? 'text-j-glow' : 'text-j-text'">
-          {{ isDragging ? 'Drop your note here' : 'Pick your Obsidian note' }}
-        </p>
-        <p class="text-xs text-j-muted mt-1">Click or drag a <span class="font-mono text-j-glow">.md</span> file</p>
+      <div class="drop-text-block">
+        <p class="drop-title">{{ isDragging ? 'Drop your note here' : 'Drag & drop your note file here' }}</p>
+        <p class="drop-sub">Click or drag a <span class="mono accent">.md</span> file to upload</p>
       </div>
     </div>
   </div>
@@ -31,14 +23,15 @@
 
 <script setup>
 import { ref } from 'vue'
+import { cole } from '@/lib/cole.js'
 
 const emit = defineEmits(['file-selected'])
 const isDragging = ref(false)
 
 async function pick() {
-  const filePath = await window.cole.openFileDialog()
+  const filePath = await cole.openFileDialog()
   if (!filePath) return
-  const info = await window.cole.readFile(filePath)
+  const info = await cole.readFile(filePath)
   emit('file-selected', info)
 }
 
@@ -46,7 +39,73 @@ async function onDrop(e) {
   isDragging.value = false
   const file = e.dataTransfer.files[0]
   if (!file || !file.name.endsWith('.md')) return
-  const info = await window.cole.readFile(file.path)
+  if (!file.path) return
+  const info = await cole.readFile(file.path)
   emit('file-selected', info)
 }
 </script>
+
+<style scoped>
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drop-zone:hover {
+  border-color: var(--color-primary);
+  background: rgba(0,122,255,0.03);
+}
+.drop-zone--over {
+  border-color: var(--color-primary);
+  background: rgba(0,122,255,0.06);
+  box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+}
+
+.drop-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.drop-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--color-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.drop-icon-wrap svg { width: 26px; height: 26px; }
+.drop-icon-wrap--over {
+  background: rgba(0,122,255,0.12);
+  color: var(--color-primary);
+}
+
+.drop-text-block { display: flex; flex-direction: column; gap: 4px; }
+.drop-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+}
+.drop-sub {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.mono { font-family: 'JetBrains Mono', Consolas, monospace; }
+.accent { color: var(--color-primary); }
+</style>
